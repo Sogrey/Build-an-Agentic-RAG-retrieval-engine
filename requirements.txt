@@ -1,0 +1,21 @@
+pydantic
+python-dotenv
+langgraph
+langchain-core
+langchain-deepseek
+langchain-tavily
+langsmith
+langchain-openai
+langchain-text-splitters
+langchain-community
+faiss-cpu
+langgraph_supervisor
+graphrag
+numpy
+
+# PDF processing dependencies
+PyMuPDF
+unstructured[pdf]
+html2text
+paddleocr
+paddlepaddle
