@@ -1,5 +1,12 @@
 # Build an Agentic RAG Retrieval Engine Based on Multimodal Markdown Documents
 
+<div align="center">
+  <p>
+    <a href="./README.zh.md">中文版 README</a> | 
+    <a href="./README.md">English README</a>
+  </p>
+</div>
+
 This project implements a Retrieval-Augmented Generation (RAG) agent that can answer questions about MCP (Model Context Protocol) course materials. The system processes PDF documents, extracts both text and images, converts them to Markdown format, and creates a vector store for efficient retrieval.
 
 ## Features
