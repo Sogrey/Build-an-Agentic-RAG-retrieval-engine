@@ -41,7 +41,9 @@ def convert_pdf_to_markdown_simple(pdf_path, output_dir="pdf_images", output_md=
         image_map = {}  # Map page_num -> list of image paths
         total_images = 0
         
-        for page_num, page in enumerate(doc, start=1):
+        # Fix: Use proper iteration over PDF pages
+        for page_num in range(1, len(doc) + 1):
+            page = doc[page_num - 1]  # 0-based indexing in PyMuPDF
             image_map[page_num] = []
             images = page.get_images(full=True)
             

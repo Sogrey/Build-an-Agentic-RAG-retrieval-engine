@@ -30,22 +30,26 @@ def convert_pdf_to_markdown_offline(pdf_path, output_dir="pdf_images", output_md
         total_images = 0
         
         # Process each page
-        for page_num, page in enumerate(doc, start=1):
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            page_num += 1  # Convert to 1-based indexing for display
             print(f"📄 Processing page {page_num}/{len(doc)}...")
             
             # Extract text from page
-            text = page.get_text()
+            # Using getattr to improve static analysis compatibility
+            get_text_method = getattr(page, 'get_text')
+            text = get_text_method("text")
             if text.strip():
                 # Simple text processing - split into paragraphs
-                paragraphs = text.split('\\n\\n')
+                paragraphs = text.split('\n\n')
                 for para in paragraphs:
                     para = para.strip()
                     if para:
                         # Simple heuristic for headers (short lines, no lowercase)
                         if len(para) < 100 and para.isupper():
-                            md_lines.append(f"## {para}\\n")
+                            md_lines.append(f"## {para}\n")
                         else:
-                            md_lines.append(f"{para}\\n\\n")
+                            md_lines.append(f"{para}\n\n")
             
             # Extract images from page
             images = page.get_images(full=True)
@@ -63,7 +67,7 @@ def convert_pdf_to_markdown_offline(pdf_path, output_dir="pdf_images", output_md
                         rgb_pix = None  # Release memory
                     
                     # Add image reference to markdown
-                    md_lines.append(f"![Image]({img_path})\\n\\n")
+                    md_lines.append(f"![Image]({img_path})\n\n")
                     total_images += 1
                     pix = None  # Release memory
                     

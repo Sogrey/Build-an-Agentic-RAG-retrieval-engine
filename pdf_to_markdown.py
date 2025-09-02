@@ -41,36 +41,43 @@ def convert_pdf_to_markdown(pdf_path, output_dir="pdf_images", output_md="output
         image_map = {}  # Map page_num -> list of image paths
         total_images = 0
         
-        for page_num, page in enumerate(doc, start=1):
+        # Fix: Use len(doc) to get page count and iterate through page numbers
+        total_pages = len(doc)
+        for page_num in range(1, total_pages + 1):
             image_map[page_num] = []
-            images = page.get_images(full=True)
-            
-            for img_index, img in enumerate(images, start=1):
-                try:
-                    xref = img[0]
-                    pix = fitz.Pixmap(doc, xref)
-                    img_path = os.path.join(output_dir, f"page{page_num}_img{img_index}.png")
+            try:
+                page = doc.load_page(page_num - 1)  # 0-based index
+                images = page.get_images(full=True)
+                
+                for img_index, img in enumerate(images, start=1):
+                    try:
+                        xref = img[0]
+                        pix = fitz.Pixmap(doc, xref)
+                        img_path = os.path.join(output_dir, f"page{page_num}_img{img_index}.png")
+                        
+                        if pix.n < 5:  # RGB / Gray
+                            pix.save(img_path)
+                        else:  # CMYK to RGB conversion
+                            rgb_pix = fitz.Pixmap(fitz.csRGB, pix)
+                            rgb_pix.save(img_path)
+                            rgb_pix = None  # Release memory
+                        
+                        image_map[page_num].append(img_path)
+                        total_images += 1
+                        pix = None  # Release memory
+                        
+                    except Exception as e:
+                        print(f"⚠️  Warning: Failed to extract image {img_index} from page {page_num}: {e}")
+                        continue
+                
+                # Print progress every 50 pages
+                if page_num % 50 == 0:
+                    print(f"📄 Processed {page_num}/{total_pages} pages...")
                     
-                    if pix.n < 5:  # RGB / Gray
-                        pix.save(img_path)
-                    else:  # CMYK to RGB conversion
-                        rgb_pix = fitz.Pixmap(fitz.csRGB, pix)
-                        rgb_pix.save(img_path)
-                        rgb_pix = None  # Release memory
-                    
-                    image_map[page_num].append(img_path)
-                    total_images += 1
-                    pix = None  # Release memory
-                    
-                except Exception as e:
-                    print(f"⚠️  Warning: Failed to extract image {img_index} from page {page_num}: {e}")
-                    continue
-            
-            # Print progress every 50 pages
-            if page_num % 50 == 0:
-                print(f"📄 Processed {page_num}/{len(doc)} pages...")
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to process page {page_num}: {e}")
+                continue
         
-        total_pages = len(doc)  # Store page count before closing
         doc.close()  # Close document to free memory
         print(f"✅ Extracted {total_images} images from {total_pages} pages")
         

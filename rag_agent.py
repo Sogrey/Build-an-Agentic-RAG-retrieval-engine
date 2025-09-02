@@ -12,6 +12,8 @@ from langchain.tools.retriever import create_retriever_tool
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel, Field
+from typing import Dict, List, Any
+from langchain_core.messages import HumanMessage
 
 # ----------------------------------------------------------------------
 # LLM & Embeddings
@@ -135,7 +137,17 @@ async def grade_documents(state: MessagesState) -> Literal["generate_answer", "r
         result = await grader_model.with_structured_output(GradeDoc).ainvoke([
             {"role": "user", "content": prompt}
         ])
-        return "generate_answer" if result.binary_score.lower().startswith("y") else "rewrite_question"
+        # Properly handle the result type
+        if isinstance(result, GradeDoc):
+            # If it's already a GradeDoc instance, access directly
+            score = result.binary_score
+        elif isinstance(result, dict):
+            # If it's a dict, access the key
+            score = result.get("binary_score", "no")
+        else:
+            # Fallback: try to access as attribute or convert to string
+            score = getattr(result, "binary_score", str(result))
+        return "generate_answer" if score.lower().startswith("y") else "rewrite_question"
     except Exception as e:
         print(f"Error grading documents: {e}")
         return "generate_answer"  # Default to generating answer if grading fails
@@ -196,7 +208,11 @@ async def main():
                 print("Goodbye! 👋")
                 break
                 
-            result = await rag_agent.ainvoke({"messages": [{"role": "user", "content": question}]})
+            # Create properly typed MessagesState using HumanMessage
+            input_state = MessagesState(
+                messages=[HumanMessage(content=question)]
+            )
+            result = await rag_agent.ainvoke(input_state)
             answer = result["messages"][-1].content
             print(f"Assistant: {answer}\n")
         except KeyboardInterrupt:

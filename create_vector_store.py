@@ -2,17 +2,29 @@ import os
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_community.vectorstores import FAISS
+from pydantic import SecretStr
+import numpy as np
 
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+
+# Define MockEmbeddings class once
+from langchain_core.embeddings import Embeddings
+
+class MockEmbeddings(Embeddings):
+    def embed_documents(self, texts):
+        return [np.random.rand(1536).tolist() for _ in texts]
+    
+    def embed_query(self, text):
+        return np.random.rand(1536).tolist()
 
 OPENAI_EMBEDDING_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Use direct OpenAI embeddings with timeout settings
 try:
     embed = OpenAIEmbeddings(
-        api_key=OPENAI_EMBEDDING_API_KEY,
+        api_key=SecretStr(OPENAI_EMBEDDING_API_KEY) if OPENAI_EMBEDDING_API_KEY else None,
         model="text-embedding-3-small",
         timeout=30,
         max_retries=3
@@ -49,18 +61,6 @@ if embed is not None:
     except Exception as e:
         print(f"Error creating vector store: {e}")
         print("Falling back to a mock vector store for demonstration purposes...")
-        # Create a mock vector store for demonstration
-        from langchain_community.vectorstores import FAISS
-        from langchain_core.embeddings import Embeddings
-        import numpy as np
-        
-        class MockEmbeddings(Embeddings):
-            def embed_documents(self, texts):
-                return [np.random.rand(1536).tolist() for _ in texts]
-            
-            def embed_query(self, text):
-                return np.random.rand(1536).tolist()
-        
         mock_embed = MockEmbeddings()
         vector_store = FAISS.from_documents(md_header_splits[:10], embedding=mock_embed)  # Use only first 10 chunks
         vector_store.save_local("mcp_course_materials_db")
@@ -68,17 +68,6 @@ if embed is not None:
 else:
     print("Embedding model not available. Creating mock vector store...")
     # Create a mock vector store for demonstration
-    from langchain_community.vectorstores import FAISS
-    from langchain_core.embeddings import Embeddings
-    import numpy as np
-    
-    class MockEmbeddings(Embeddings):
-        def embed_documents(self, texts):
-            return [np.random.rand(1536).tolist() for _ in texts]
-        
-        def embed_query(self, text):
-            return np.random.rand(1536).tolist()
-    
     mock_embed = MockEmbeddings()
     vector_store = FAISS.from_documents(md_header_splits[:10], embedding=mock_embed)  # Use only first 10 chunks
     vector_store.save_local("mcp_course_materials_db")
